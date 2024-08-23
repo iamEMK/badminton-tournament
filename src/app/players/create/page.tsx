@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Player, PlayerStatus } from '@prisma/client';
 
 export default function CreatePlayerPage() {
   const [firstName, setFirstName] = useState('');
@@ -10,22 +11,19 @@ export default function CreatePlayerPage() {
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [ranking, setRanking] = useState('');
   const router = useRouter();
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newPlayerData = {
-        firstName,
-        lastName,
-        country,
-        dateOfBirth: new Date(dateOfBirth),
-        ranking,
-        "status": "ACTIVE",       // Assuming 'ACTIVE' is a valid enum value in PlayerStatus
-        "singleMatches": [],      // Assuming no initial matches
-        "statistics": null        // Assuming no statistics yet
-      };
-  
+
+    const newPlayerData: Player = {
+      id: '21',
+      firstName,
+      lastName,
+      country,
+      dateOfBirth: new Date(dateOfBirth),
+      ranking: ranking ? Number(ranking) : null,
+      status: PlayerStatus.ACTIVE,
+    };
       try {
-        console.log('e')
         const response = await fetch('/api/players', {
           method: 'POST',
           headers: {
