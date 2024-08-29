@@ -5,7 +5,7 @@ CREATE TABLE `User` (
     `email` VARCHAR(191) NULL,
     `emailVerified` DATETIME(3) NULL,
     `image` VARCHAR(191) NULL,
-    `role` ENUM('ADMIN', 'VIEWER') NOT NULL DEFAULT 'VIEWER',
+    `role` ENUM('ADMIN', 'OFFICIAL', 'COACH', 'VIEWER') NOT NULL,
 
     UNIQUE INDEX `User_email_key`(`email`),
     PRIMARY KEY (`id`)
@@ -52,22 +52,35 @@ CREATE TABLE `VerificationToken` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
+CREATE TABLE `Season` (
+    `id` VARCHAR(191) NOT NULL,
+    `year` INTEGER NOT NULL,
+    `startDate` DATETIME(3) NOT NULL,
+    `endDate` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `Season_year_key`(`year`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
 CREATE TABLE `Tournament` (
     `id` VARCHAR(191) NOT NULL,
     `name` VARCHAR(191) NOT NULL,
     `startDate` DATETIME(3) NOT NULL,
     `endDate` DATETIME(3) NOT NULL,
     `location` VARCHAR(191) NOT NULL,
-    `description` TEXT NULL,
-    `category` ENUM('BWF_WORLD_TOUR_SUPER_1000', 'BWF_WORLD_TOUR_SUPER_750', 'BWF_WORLD_TOUR_SUPER_500', 'BWF_WORLD_TOUR_SUPER_300', 'BWF_TOUR_SUPER_100', 'OLYMPIC_GAMES', 'BWF_WORLD_CHAMPIONSHIPS', 'CONTINENTAL_CHAMPIONSHIPS', 'NATIONAL_CHAMPIONSHIPS', 'OTHER') NOT NULL,
+    `venue` VARCHAR(191) NOT NULL,
+    `category` ENUM('SUPER_1000', 'SUPER_750', 'SUPER_500', 'SUPER_300', 'SUPER_100', 'WORLD_TOUR_FINALS', 'WORLD_CHAMPIONSHIPS', 'OLYMPIC_GAMES', 'CONTINENTAL_CHAMPIONSHIPS', 'OTHER') NOT NULL,
+    `totalPrizeMoney` DECIMAL(10, 2) NOT NULL,
+    `seasonId` VARCHAR(191) NOT NULL,
 
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `EventCategory` (
+CREATE TABLE `Event` (
     `id` VARCHAR(191) NOT NULL,
-    `name` VARCHAR(191) NOT NULL,
+    `name` ENUM('MENS_SINGLES', 'WOMENS_SINGLES', 'MENS_DOUBLES', 'WOMENS_DOUBLES', 'MIXED_DOUBLES') NOT NULL,
     `tournamentId` VARCHAR(191) NOT NULL,
 
     PRIMARY KEY (`id`)
@@ -76,13 +89,17 @@ CREATE TABLE `EventCategory` (
 -- CreateTable
 CREATE TABLE `Player` (
     `id` VARCHAR(191) NOT NULL,
+    `bwfId` VARCHAR(191) NOT NULL,
     `firstName` VARCHAR(191) NOT NULL,
     `lastName` VARCHAR(191) NOT NULL,
     `dateOfBirth` DATETIME(3) NOT NULL,
     `country` VARCHAR(191) NOT NULL,
-    `ranking` INTEGER NULL,
-    `status` ENUM('ACTIVE', 'INJURED', 'DISQUALIFIED', 'WITHDRAWN') NOT NULL DEFAULT 'ACTIVE',
+    `gender` ENUM('MALE', 'FEMALE', 'OTHER') NOT NULL,
+    `handedness` ENUM('RIGHT', 'LEFT') NOT NULL DEFAULT 'RIGHT',
+    `height` INTEGER NULL,
+    `playingStatus` ENUM('ACTIVE', 'INJURED', 'RETIRED', 'SUSPENDED') NOT NULL DEFAULT 'ACTIVE',
 
+    UNIQUE INDEX `Player_bwfId_key`(`bwfId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -90,6 +107,8 @@ CREATE TABLE `Player` (
 CREATE TABLE `PlayerStats` (
     `id` VARCHAR(191) NOT NULL,
     `playerId` VARCHAR(191) NOT NULL,
+    `currentWorldRanking` INTEGER NULL,
+    `highestWorldRanking` INTEGER NULL,
     `matchesPlayed` INTEGER NOT NULL DEFAULT 0,
     `matchesWon` INTEGER NOT NULL DEFAULT 0,
     `totalPoints` INTEGER NOT NULL DEFAULT 0,
@@ -99,27 +118,28 @@ CREATE TABLE `PlayerStats` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `DoublesPairing` (
+CREATE TABLE `Entry` (
     `id` VARCHAR(191) NOT NULL,
-    `player1Id` VARCHAR(191) NOT NULL,
-    `player2Id` VARCHAR(191) NOT NULL,
+    `eventId` VARCHAR(191) NOT NULL,
+    `seeding` INTEGER NULL,
+    `status` ENUM('CONFIRMED', 'WAITLISTED', 'WITHDRAWN') NOT NULL DEFAULT 'CONFIRMED',
 
-    UNIQUE INDEX `DoublesPairing_player1Id_player2Id_key`(`player1Id`, `player2Id`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
 CREATE TABLE `Match` (
     `id` VARCHAR(191) NOT NULL,
-    `tournamentId` VARCHAR(191) NOT NULL,
-    `eventCategoryId` VARCHAR(191) NOT NULL,
-    `round` VARCHAR(191) NOT NULL,
-    `status` ENUM('SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'POSTPONED') NOT NULL DEFAULT 'SCHEDULED',
+    `eventId` VARCHAR(191) NOT NULL,
+    `round` ENUM('QUALIFICATION', 'ROUND_OF_64', 'ROUND_OF_32', 'ROUND_OF_16', 'QUARTER_FINAL', 'SEMI_FINAL', 'FINAL') NOT NULL,
+    `courtNumber` INTEGER NULL,
+    `status` ENUM('SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'WALKOVER', 'RETIRED', 'CANCELLED') NOT NULL DEFAULT 'SCHEDULED',
     `scheduledTime` DATETIME(3) NOT NULL,
     `actualStartTime` DATETIME(3) NULL,
     `endTime` DATETIME(3) NULL,
     `winner` VARCHAR(191) NULL,
-    `court` VARCHAR(191) NULL,
+    `umpire` VARCHAR(191) NULL,
+    `serviceJudge` VARCHAR(191) NULL,
 
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -131,7 +151,7 @@ CREATE TABLE `Set` (
     `setNumber` INTEGER NOT NULL,
     `team1Score` INTEGER NOT NULL,
     `team2Score` INTEGER NOT NULL,
-    `winner` VARCHAR(191) NULL,
+    `duration` INTEGER NULL,
 
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -141,44 +161,51 @@ CREATE TABLE `Rally` (
     `id` VARCHAR(191) NOT NULL,
     `setId` VARCHAR(191) NOT NULL,
     `rallyNumber` INTEGER NOT NULL,
-    `servingTeam` VARCHAR(191) NOT NULL,
-    `winningTeam` VARCHAR(191) NOT NULL,
-    `scoringShot` ENUM('SMASH', 'DROP', 'CLEAR', 'DRIVE', 'NET_SHOT', 'SERVE', 'RETURN', 'OTHER') NULL,
+    `servingPlayerId` VARCHAR(191) NOT NULL,
+    `winningPlayerId` VARCHAR(191) NOT NULL,
+    `scoringShot` ENUM('SMASH', 'DROP', 'CLEAR', 'DRIVE', 'NET_SHOT', 'SERVE', 'LOB', 'SLICE') NULL,
     `duration` INTEGER NULL,
+    `returningPlayerId` VARCHAR(191) NOT NULL,
 
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `LiveScore` (
+CREATE TABLE `MatchPlayerStats` (
     `id` VARCHAR(191) NOT NULL,
     `matchId` VARCHAR(191) NOT NULL,
-    `currentSet` INTEGER NOT NULL,
-    `team1Score` INTEGER NOT NULL,
-    `team2Score` INTEGER NOT NULL,
-    `servingTeam` VARCHAR(191) NOT NULL,
-    `lastUpdated` DATETIME(3) NOT NULL,
+    `playerId` VARCHAR(191) NOT NULL,
+    `pointsScored` INTEGER NOT NULL,
+    `smashes` INTEGER NOT NULL,
+    `drops` INTEGER NOT NULL,
+    `netShots` INTEGER NOT NULL,
+    `errors` INTEGER NOT NULL,
+    `servingScore` INTEGER NOT NULL,
+    `receivingScore` INTEGER NOT NULL,
 
-    UNIQUE INDEX `LiveScore_matchId_key`(`matchId`),
+    UNIQUE INDEX `MatchPlayerStats_matchId_playerId_key`(`matchId`, `playerId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `_DoublesPairingToMatch` (
-    `A` VARCHAR(191) NOT NULL,
-    `B` VARCHAR(191) NOT NULL,
+CREATE TABLE `MatchReport` (
+    `id` VARCHAR(191) NOT NULL,
+    `matchId` VARCHAR(191) NOT NULL,
+    `highlights` TEXT NOT NULL,
+    `keyTurningPoints` TEXT NOT NULL,
+    `playerPerformance` TEXT NOT NULL,
 
-    UNIQUE INDEX `_DoublesPairingToMatch_AB_unique`(`A`, `B`),
-    INDEX `_DoublesPairingToMatch_B_index`(`B`)
+    UNIQUE INDEX `MatchReport_matchId_key`(`matchId`),
+    PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `_SinglesPlayer` (
+CREATE TABLE `_EntryToPlayer` (
     `A` VARCHAR(191) NOT NULL,
     `B` VARCHAR(191) NOT NULL,
 
-    UNIQUE INDEX `_SinglesPlayer_AB_unique`(`A`, `B`),
-    INDEX `_SinglesPlayer_B_index`(`B`)
+    UNIQUE INDEX `_EntryToPlayer_AB_unique`(`A`, `B`),
+    INDEX `_EntryToPlayer_B_index`(`B`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- AddForeignKey
@@ -188,16 +215,19 @@ ALTER TABLE `Account` ADD CONSTRAINT `Account_userId_fkey` FOREIGN KEY (`userId`
 ALTER TABLE `Session` ADD CONSTRAINT `Session_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `EventCategory` ADD CONSTRAINT `EventCategory_tournamentId_fkey` FOREIGN KEY (`tournamentId`) REFERENCES `Tournament`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `Tournament` ADD CONSTRAINT `Tournament_seasonId_fkey` FOREIGN KEY (`seasonId`) REFERENCES `Season`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Event` ADD CONSTRAINT `Event_tournamentId_fkey` FOREIGN KEY (`tournamentId`) REFERENCES `Tournament`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `PlayerStats` ADD CONSTRAINT `PlayerStats_playerId_fkey` FOREIGN KEY (`playerId`) REFERENCES `Player`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `Match` ADD CONSTRAINT `Match_tournamentId_fkey` FOREIGN KEY (`tournamentId`) REFERENCES `Tournament`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `Entry` ADD CONSTRAINT `Entry_eventId_fkey` FOREIGN KEY (`eventId`) REFERENCES `Event`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `Match` ADD CONSTRAINT `Match_eventCategoryId_fkey` FOREIGN KEY (`eventCategoryId`) REFERENCES `EventCategory`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `Match` ADD CONSTRAINT `Match_eventId_fkey` FOREIGN KEY (`eventId`) REFERENCES `Event`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `Set` ADD CONSTRAINT `Set_matchId_fkey` FOREIGN KEY (`matchId`) REFERENCES `Match`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -206,16 +236,16 @@ ALTER TABLE `Set` ADD CONSTRAINT `Set_matchId_fkey` FOREIGN KEY (`matchId`) REFE
 ALTER TABLE `Rally` ADD CONSTRAINT `Rally_setId_fkey` FOREIGN KEY (`setId`) REFERENCES `Set`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `LiveScore` ADD CONSTRAINT `LiveScore_matchId_fkey` FOREIGN KEY (`matchId`) REFERENCES `Match`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `MatchPlayerStats` ADD CONSTRAINT `MatchPlayerStats_matchId_fkey` FOREIGN KEY (`matchId`) REFERENCES `Match`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `_DoublesPairingToMatch` ADD CONSTRAINT `_DoublesPairingToMatch_A_fkey` FOREIGN KEY (`A`) REFERENCES `DoublesPairing`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `MatchPlayerStats` ADD CONSTRAINT `MatchPlayerStats_playerId_fkey` FOREIGN KEY (`playerId`) REFERENCES `Player`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `_DoublesPairingToMatch` ADD CONSTRAINT `_DoublesPairingToMatch_B_fkey` FOREIGN KEY (`B`) REFERENCES `Match`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `MatchReport` ADD CONSTRAINT `MatchReport_matchId_fkey` FOREIGN KEY (`matchId`) REFERENCES `Match`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `_SinglesPlayer` ADD CONSTRAINT `_SinglesPlayer_A_fkey` FOREIGN KEY (`A`) REFERENCES `Match`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `_EntryToPlayer` ADD CONSTRAINT `_EntryToPlayer_A_fkey` FOREIGN KEY (`A`) REFERENCES `Entry`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `_SinglesPlayer` ADD CONSTRAINT `_SinglesPlayer_B_fkey` FOREIGN KEY (`B`) REFERENCES `Player`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `_EntryToPlayer` ADD CONSTRAINT `_EntryToPlayer_B_fkey` FOREIGN KEY (`B`) REFERENCES `Player`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
