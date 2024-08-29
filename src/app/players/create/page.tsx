@@ -20,8 +20,11 @@ export default function CreatePlayerPage() {
       lastName,
       country,
       dateOfBirth: new Date(dateOfBirth),
-      ranking: ranking ? Number(ranking) : null,
-      status: PlayerStatus.ACTIVE,
+      gender: 'MALE',
+      height: 143,
+      bwfId : '123',
+      handedness : 'RIGHT',
+      playingStatus: PlayerStatus.ACTIVE,
     };
       try {
         const response = await fetch('/api/players', {
