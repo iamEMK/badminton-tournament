@@ -5,9 +5,18 @@ import { useState, useEffect } from 'react';
 interface TournamentStats {
   id: string;
   name: string;
+  location: string;
+  startDate: string;
+  endDate: string;
+  category: string;
+  seasonYear: number;
+  totalEvents: number;
   totalMatches: number;
   completedMatches: number;
-  // Add more fields as needed
+  inProgressMatches: number;
+  scheduledMatches: number;
+  totalEntries: number;
+  completionRate: string;
 }
 
 export default function TournamentStatisticsPage() {
@@ -65,9 +74,9 @@ export default function TournamentStatisticsPage() {
                 <td className="px-6 py-4 whitespace-nowrap">{stat.totalMatches}</td>
                 <td className="px-6 py-4 whitespace-nowrap">{stat.completedMatches}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {/* {((stat.complete */}
-                  </td>
-                  </tr>
+                  {stat.completionRate}%
+                </td>
+              </tr>
             ))}
             </tbody>
             </table>

@@ -16,33 +16,50 @@ interface Player {
   };
 }
 
-export default function PlayersPage() {
+export default function AdminPlayers() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const fetchPlayers = async () => {
+    try {
+      const response = await fetch('/api/players');
+      if (!response.ok) {
+        throw new Error('Failed to fetch players');
+      }
+      const data = await response.json();
+      setPlayers(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    // Fetch players data here
-    // For now, we'll use dummy data
-    const fetchPlayers = async () => {
-        try {
-          const response = await fetch('/api/players');
-          if (!response.ok) {
-            throw new Error('Failed to fetch players');
-          }
-          const data = await response.json();
-          setPlayers(data);
-        } catch (err) {
-          setError('An error occurred while fetching tournament statistics');
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      fetchPlayers()
-    // setPlayers([
-    //   { id: '1', firstName: 'John', lastName: 'Doe', country: 'USA', ranking: 1 },
-    //   { id: '2', firstName: 'Jane', lastName: 'Smith', country: 'UK', ranking: 2 },
-    // ]);
+    fetchPlayers();
   }, []);
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this player?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/players/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete player');
+      }
+
+      // Refresh the list
+      fetchPlayers();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete player');
+    }
+  };
 
   if (isLoading) {
     return <div className="flex justify-center items-center min-h-screen">Loading players...</div>;
@@ -53,15 +70,20 @@ export default function PlayersPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">Players</h1>
-      <Link href="/players/create" className="bg-green-500 text-white px-4 py-2 rounded mb-6 inline-block hover:bg-green-600">
-        Add New Player
-      </Link>
+    <div className="container mx-auto p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Manage Players</h1>
+        <Link
+          href="/players/create"
+          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+        >
+          Add New Player
+        </Link>
+      </div>
       {players.length === 0 ? (
-        <p className="text-gray-500 mt-4">No players found. Add one to get started!</p>
+        <p className="text-gray-500">No players found.</p>
       ) : (
-        <div className="overflow-x-auto mt-6">
+        <div className="overflow-x-auto">
           <table className="w-full border-collapse border border-gray-300">
             <thead>
               <tr className="bg-gray-100">
@@ -70,7 +92,7 @@ export default function PlayersPage() {
                 <th className="border border-gray-300 p-3 text-left">Country</th>
                 <th className="border border-gray-300 p-3 text-left">Gender</th>
                 <th className="border border-gray-300 p-3 text-left">Status</th>
-                <th className="border border-gray-300 p-3 text-left">World Ranking</th>
+                <th className="border border-gray-300 p-3 text-left">Ranking</th>
                 <th className="border border-gray-300 p-3 text-left">Actions</th>
               </tr>
             </thead>
@@ -78,7 +100,9 @@ export default function PlayersPage() {
               {players.map((player) => (
                 <tr key={player.id} className="hover:bg-gray-50">
                   <td className="border border-gray-300 p-3">{player.bwfId}</td>
-                  <td className="border border-gray-300 p-3">{`${player.firstName} ${player.lastName}`}</td>
+                  <td className="border border-gray-300 p-3">
+                    {player.firstName} {player.lastName}
+                  </td>
                   <td className="border border-gray-300 p-3">{player.country}</td>
                   <td className="border border-gray-300 p-3">{player.gender}</td>
                   <td className="border border-gray-300 p-3">
@@ -95,9 +119,26 @@ export default function PlayersPage() {
                     {player.statistics?.currentWorldRanking || 'N/A'}
                   </td>
                   <td className="border border-gray-300 p-3">
-                    <Link href={`/players/${player.id}`} className="text-blue-500 hover:underline">
-                      View Details
-                    </Link>
+                    <div className="flex gap-2">
+                      <Link
+                        href={`/players/${player.id}`}
+                        className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600"
+                      >
+                        View
+                      </Link>
+                      <Link
+                        href={`/players/${player.id}/edit`}
+                        className="bg-yellow-500 text-white px-3 py-1 rounded text-sm hover:bg-yellow-600"
+                      >
+                        Edit
+                      </Link>
+                      <button
+                        onClick={() => handleDelete(player.id)}
+                        className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
